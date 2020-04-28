@@ -1,0 +1,14 @@
+bin
+include
+lib
+pyvenv.cfg
+__pycache__
+etc
+share
+.ipynb_checkpoints
+
+*.swp
+*.json
+
+
+
