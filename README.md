@@ -1,4 +1,4 @@
-<img src="/Users/calvincheng/Documents/compsci/projects/pointillism/images/moon_banner.png" alt="moon_banner" style="zoom:15%;" />
+<img src="./images/moon_banner.png" alt="moon_banner" style="zoom:15%;" />
 
 
 
