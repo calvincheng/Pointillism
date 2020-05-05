@@ -2,6 +2,7 @@ import math
 import random
 import numpy as np
 from scipy import signal
+from scipy import ndimage
 from matplotlib import pyplot as plt
 import os
 
@@ -16,12 +17,12 @@ parser.add_argument('-nt', '--no-thin',
                     default = True,
                     action = 'store_false',
                     help = 'Disable edge thinning')
-parser.add_argument('--low-ratio', 
+parser.add_argument('-lr', '--low-ratio', 
                     type = float, 
                     metavar = '', 
                     default = 0.1,
                     help = 'Canny low threshold')
-parser.add_argument('--high-ratio', 
+parser.add_argument('-hr', '--high-ratio', 
                     type = float, 
                     metavar = '', 
                     default = 0.2,
@@ -67,7 +68,7 @@ def gaussian_filter(img, sigma = 1):
     :sigma: Standard deviation used in the Gaussian kernel – higher is blurrier
     '''
     kernel = generate_gaussian_kernel(sigma)
-    result = signal.convolve(img, kernel, mode='same')
+    result = ndimage.convolve(img, kernel, mode='nearest') # signal.convolve(img, kernel, mode='same')
     return result
 
 def sobel(img):
@@ -77,11 +78,14 @@ def sobel(img):
     SOBEL_X = np.array([[ 1,  0, -1],
                         [ 2,  0, -2],
                         [ 1,  0, -1]])
+
     SOBEL_Y = np.array([[ 1,  2,  1],
                         [ 0,  0,  0],
                         [-1, -2, -1]])
-    G_x = signal.convolve(img, SOBEL_X, mode='same')
-    G_y = signal.convolve(img, SOBEL_Y, mode='same')
+
+    G_x = ndimage.convolve(img, SOBEL_X, mode='nearest') # signal.convolve2d(img, SOBEL_Y, mode='same')
+    G_y = ndimage.convolve(img, SOBEL_Y, mode='nearest') # signal.convolve2d(img, SOBEL_X, mode='same')
+
     G = np.sqrt(G_x**2 + G_y**2)
     theta = np.arctan2(G_y, G_x) * (180 / math.pi)
     return G, theta
@@ -93,9 +97,11 @@ def non_maximum_suppression(G, theta):
     '''
     m, n = G.shape
     result = np.zeros((m, n))
+
     # Round theta to nearest 45 degree angle
     round_to = 45
     theta = (theta + round_to / 2) // round_to * round_to
+
     for i in range(m):
         for j in range(n):
             try:
@@ -120,9 +126,10 @@ def non_maximum_suppression(G, theta):
                     
             except IndexError as e:
                 pass
+
     return result
 
-def threshold(img, low_ratio = 0.3, high_ratio = 0.2):
+def threshold(img, low_ratio = 0.5, high_ratio = 0.2):
     '''High-low thresholding. Splits pixel into strong, weak and zero groups.
     :img: Input image
     :low_ratio: Low threshold ratio
@@ -164,7 +171,7 @@ def hysteresis(img, weaks, strongs):
     for i, j in strongs:
         res[i][j] = strong
     
-    # First pass downwards
+    # Downward pass
     for i, j in weaks:
         nbrs = [(i, j+1), (i+1, j+1), (i+1, j), (i+1, j-1), 
                 (i, j-1), (i-1, j-1), (i-1, j), (i-1, j+1)]
@@ -174,7 +181,7 @@ def hysteresis(img, weaks, strongs):
                 strongs.add((i, j))
                 break
                 
-    # Second pass upwards
+    # Upward pass
     for i, j in reversed(weaks):
         nbrs = [(i, j+1), (i+1, j+1), (i+1, j), (i+1, j-1), 
                 (i, j-1), (i-1, j-1), (i-1, j), (i-1, j+1)]
@@ -254,12 +261,20 @@ def output(B, filename = None):
 
 
 if __name__ == '__main__':
+    if args.PATH[-4:] != '.png':
+        print('ERROR: Image must be in .png format')
+        exit(1)
+
     try:
         img = plt.imread(args.PATH)
     except:
         print('ERROR: Invalid file path. Please try again.')
         exit(1)
-    img = np.dot(img[...,:3], [0.2989, 0.5870, 0.1140]) # Flatten to m by n BW image
+
+    if np.ndim(img) > 2:
+        # Convert RGB image to greyscale if needed
+        img = np.dot(img[...,:3], [0.2989, 0.5870, 0.1140])
+
     edge = canny(img, args.blur, args.low_ratio, args.high_ratio, args.no_thin)
     B = braille(edge, args.dx, args.dy)
     output(B, args.output)
