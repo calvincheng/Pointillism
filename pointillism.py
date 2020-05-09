@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import os
 
 import argparse
-parser = argparse.ArgumentParser(description='Generate Braille pointillist art.')
+parser = argparse.ArgumentParser(description='Generate pointillist art with Unicode braille.')
 parser.add_argument('-b', '--blur', 
                     type = float, 
                     metavar = '', 
@@ -27,12 +27,12 @@ parser.add_argument('-hr', '--high-ratio',
                     metavar = '', 
                     default = 0.2,
                     help = 'Canny high threshold')
-parser.add_argument('--dx', 
+parser.add_argument('-dx', 
                     type = float, 
                     metavar = '', 
                     default = 1,
                     help = 'Horizontal resolution')
-parser.add_argument('--dy', 
+parser.add_argument('-dy', 
                     type = float, 
                     metavar = '', 
                     default = 1,
