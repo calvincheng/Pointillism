@@ -22,17 +22,18 @@ python3 pointillism.py PATH/TO/image.png
 Additional arguments can be specified to refine the result. For example, running
 
 ```
-python3 pointillism.py PATH/TO/image.png -dx=2 dy=2 -o=my_result
+python3 pointillism.py PATH/TO/image.png --height=240 width==480 -o=my_result
 ```
-generates an image of half the size of the original, and outputs the result to
-`my_result.txt` within the working directory.
+generates a 480 by 240 pixel image, and outputs the result to `my_result.txt` within the working directory.
 
 
 
 To see a list of available arguments, running the program with the `-h` flag gives the following message:
 
 ```
-usage: pointillism.py [-h] [-b] [-nt] [-lr] [-hr] [-dx] [-dy] [-o] PATH
+usage: pointillism.py [-h] [-b] [-nt] [-lr] [-hr] [--width] [--height] [--fit]
+                      [-o]
+                      PATH
 
 Generate pointillist art with Unicode braille.
 
@@ -45,9 +46,10 @@ optional arguments:
   -nt, --no-thin       Disable edge thinning
   -lr , --low-ratio    Canny low threshold
   -hr , --high-ratio   Canny high threshold
-  -dx                  Horizontal resolution
-  -dy                  Vertical resolution
-  -o , --output        Output filename
+  --width              Output width
+  --height             Output height
+  --fit                Fit printed result to terminal screen
+  -o , --output        Filename for .txt file to save result
 ```
 
 
@@ -60,11 +62,11 @@ optional arguments:
 
 * [SciPy](https://scipy.org/) – image convolution with kernels
 
-  
+
 
 ## Future work
 
-* Change `-dx` and `-dy` parameters to `--height` and `--width`
+* ~~Change `-dx` and `-dy` parameters to `--height` and `--width`~~
 * Support for non `.png` inputs
 * Output as `.jpeg` instead of `.txt`
 * Port to web application?

@@ -27,21 +27,25 @@ parser.add_argument('-hr', '--high-ratio',
                     metavar = '', 
                     default = 0.2,
                     help = 'Canny high threshold')
-parser.add_argument('-dx', 
+parser.add_argument('--width', 
                     type = float, 
                     metavar = '', 
-                    default = 1,
-                    help = 'Horizontal resolution')
-parser.add_argument('-dy', 
+                    default = None,
+                    help = 'Output width')
+parser.add_argument('--height', 
                     type = float, 
                     metavar = '', 
-                    default = 1,
-                    help = 'Vertical resolution')
+                    default = None,
+                    help = 'Output height')
+parser.add_argument('--fit',
+                    default = False,
+                    action = 'store_true',
+                    help = 'Fit printed result to terminal screen')
 parser.add_argument('-o', '--output',
                     type = str,
                     metavar = '',
                     default = None,
-                    help = 'Output filename')
+                    help = 'Filename for .txt file to save result')
 parser.add_argument('PATH',
                     type = str, 
                     help = 'Image path')
@@ -49,8 +53,9 @@ args = parser.parse_args()
 
 
 def getGauss(x, y, mu, sigma):
-    '''Generates G(x, y) of a Gaussian function of 
-    average mu and standard deviation sigma
+    '''Generates Guassian function G(x, y)
+    :mu: Average
+    :sigma: Standard deviation
     '''
     coeff1 = 1 / math.sqrt(2 * math.pi * sigma**2)
     coeff2 = math.exp(-(x**2 + y**2) / (2 * sigma**2))
@@ -59,6 +64,7 @@ def getGauss(x, y, mu, sigma):
 def generate_gaussian_kernel(sigma = 1, n = 5):
     '''Generates a n-by-n zero-mean Gaussian kernel
     :sigma: Standard deviation used in the Gaussian function
+    :n: Edge length
     '''
     return [[getGauss(x - n//2, y - n//2, 0, sigma) for x in range(n)] for y in range(n)]
 
@@ -194,25 +200,62 @@ def hysteresis(img, weaks, strongs):
     return res
 
 def canny(img, blur_SD = 1, low = 0.1, high = 0.2, thin = True):
-    '''Performs Canny edge detection'''
+    '''Performs Canny edge detection
+    :blur_SD: Standard deviation for Gaussian blur
+    :low: low cutoff ratio (between 0 and 1)
+    :high: high cutoff ratio (between 0 and 1)
+    :thin: Enables edge thinning if True
+    '''
+
     result = gaussian_filter(img, blur_SD)
     result, theta = sobel(result)
-    if thin:
-        result = non_maximum_suppression(result, theta)
+    if thin: result = non_maximum_suppression(result, theta)
     result, strongs, weaks = threshold(result, low, high)
     result = hysteresis(result, weaks, strongs)
     return result
 
-def braille(img, dx = 1, dy = 1):
+def braille(img, width = None, height = None, fit = False):
+    '''Generates braille output matrix of img
+    :width: Output width
+    :height: Output height
+    :fit: Output fits within terminal window size if True
+    '''
+
     BRAILLE = (( 1,   8),
                ( 2,  16),
                ( 4,  32),
                (64, 128))
     BLANK = 10240
+
     m, n = img.shape
-    res = np.zeros((int(round(m / dy / 4)), int(round(n / dx / 2))), dtype='int')
-    for i in range(0, int(round(m / dy)), 4):
-        for j in range(0, int(round(n / dx)), 2):
+
+    if fit:
+        # Fit result to terminal window
+        terminal_size = os.get_terminal_size();
+        if (terminal_size.columns * 2) / ((terminal_size.lines - 1) * 4) < 1:
+            # Portrait A-R
+            width = terminal_size.columns * 2
+            height = m * (width / n)
+        else:
+            # Landscape A-R
+            height = (terminal_size.lines - 1) * 4
+            width = n * (height / m)
+    else:
+        # Default to original image size if no dimensions are given
+        if width is None and height is None:
+            height, width = m, n
+
+        # If only one dimension specified, retain aspect ratio
+        elif width is None:
+            height, width = height, n * (height / m)
+        elif height is None:
+            height, width = m * (width / n), width
+        
+    dy, dx = m / height, n / width
+
+    res = np.zeros((int(round(height / 4)), int(round(width / 2))), dtype='int')
+    for i in range(0, int(round(height)), 4):
+        for j in range(0, int(round(width)), 2):
             block = BLANK
             for ii in range(i, i + 4):
                 for jj in range(j, j + 2):
@@ -228,7 +271,9 @@ def braille(img, dx = 1, dy = 1):
     return res
 
 def output(B, filename = None):
-    '''Prints Braille matrix B'''
+    '''Prints Braille matrix B
+    :filename: If provided, outputs result in a .txt file named `filename` instead
+    '''
     m, n = B.shape
 
     if filename:
@@ -260,6 +305,7 @@ def output(B, filename = None):
             print()
 
 
+# Driver code
 if __name__ == '__main__':
     if args.PATH[-4:] != '.png':
         print('ERROR: Image must be in .png format')
@@ -276,5 +322,5 @@ if __name__ == '__main__':
         img = np.dot(img[...,:3], [0.2989, 0.5870, 0.1140])
 
     edge = canny(img, args.blur, args.low_ratio, args.high_ratio, args.no_thin)
-    B = braille(edge, args.dx, args.dy)
+    B = braille(edge, args.width, args.height, args.fit)
     output(B, args.output)
