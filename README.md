@@ -56,7 +56,7 @@ optional arguments:
 
 An example output using an image of a flower:
 
-<img src="/Users/calvincheng/Documents/compsci/projects/pointilism/images/result.png" alt="result" style="width: 66%" />
+<img src="./images/result.png" alt="result" style="width: 45%" />
 
 ## Requirements
 
